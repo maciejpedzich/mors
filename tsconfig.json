@@ -2,5 +2,6 @@
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "jsx": "preserve"
-  }
+  },
+  "include": ["./drizzle.config.ts", "@types/node"]
 }
