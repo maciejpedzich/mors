@@ -7,7 +7,9 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "gen-migration": "npx drizzle-kit generate:mysql --schema=./src/db/schema.ts",
+    "push-migration": "npx drizzle-kit push:mysql --config ./drizzle.config.ts"
   },
   "dependencies": {
     "@astrojs/netlify": "^2.3.0",
