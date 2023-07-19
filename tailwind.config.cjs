@@ -13,16 +13,16 @@ module.exports = {
         'tyre-h': '#c2c4c8',
         'tyre-i': '#4bc048',
         'tyre-w': '#3c78a7',
-        'team-0': '#00d2be', // Mercedes
-        'team-1': '#dc0000', // Ferrari
-        'team-2': '#0600ef', // Red Bull
-        'team-3': '#005aff', // Williams
-        'team-4': '#006f62', // Aston Martin
-        'team-5': '#0090ff', // Alpine
-        'team-6': '#2b4562', // AlphaTauri
-        'team-7': '#b6babd', // Haas
-        'team-8': '#ff8700', // McLaren
-        'team-9': '#900000' // Alfa Romeo
+        'team-1': '#00d2be', // Mercedes
+        'team-2': '#dc0000', // Ferrari
+        'team-3': '#0600ef', // Red Bull
+        'team-4': '#005aff', // Williams
+        'team-5': '#006f62', // Aston Martin
+        'team-6': '#0090ff', // Alpine
+        'team-7': '#2b4562', // AlphaTauri
+        'team-8': '#b6babd', // Haas
+        'team-9': '#ff8700', // McLaren
+        'team-10': '#900000' // Alfa Romeo
       }
     }
   },
