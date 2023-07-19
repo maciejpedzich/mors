@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "ab46f35a-1cb7-41ef-a601-4a711c937b9b",
+  "id": "51a26714-d1e1-4ea4-9c4d-45dcea36075d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "drivers": {
@@ -12,7 +12,7 @@
           "type": "smallint",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "team_id": {
           "name": "team_id",
@@ -63,7 +63,7 @@
           "type": "smallint",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "session_id": {
           "name": "session_id",
@@ -82,6 +82,13 @@
         "date_noted": {
           "name": "date_noted",
           "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lap_number": {
+          "name": "lap_number",
+          "type": "smallint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -114,7 +121,7 @@
           "type": "smallint",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "driver_id": {
           "name": "driver_id",
@@ -130,8 +137,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "tyre_compund": {
-          "name": "tyre_compund",
+        "tyre_compound": {
+          "name": "tyre_compound",
           "type": "enum('s','m','h','i','w')",
           "primaryKey": false,
           "notNull": false,
@@ -186,7 +193,7 @@
           "type": "smallint",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "session_id": {
           "name": "session_id",
@@ -222,6 +229,13 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "penalties_seconds": {
+          "name": "penalties_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -237,18 +251,41 @@
           "type": "smallint",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
-        },
-        "round_id": {
-          "name": "round_id",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "autoincrement": true
         },
         "name": {
           "name": "name",
           "type": "varchar(15)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "country_code": {
+          "name": "country_code",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "sessions": {
+      "name": "sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallint",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "round_id": {
+          "name": "round_id",
+          "type": "smallint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -288,7 +325,7 @@
           "type": "smallint",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "name": {
           "name": "name",
