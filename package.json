@@ -15,6 +15,7 @@
     "@astrojs/netlify": "^2.3.0",
     "@astrojs/tailwind": "^4.0.0",
     "@astrojs/vue": "^2.2.1",
+    "@fontsource/titillium-web": "^5.0.5",
     "astro": "^2.8.1",
     "drizzle-orm": "^0.27.2",
     "flowbite": "^1.7.0",

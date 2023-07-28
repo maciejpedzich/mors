@@ -1,3 +1,5 @@
+const defaultTheme = require('tailwindcss/defaultTheme');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -6,6 +8,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Titillium Web', ...defaultTheme.fontFamily.sans]
+      },
       colors: {
         'fastest-lap': '#a320d6',
         'tyre-s': '#c53537',
