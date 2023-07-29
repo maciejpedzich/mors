@@ -1,0 +1,73 @@
+---
+import { and, asc, eq } from 'drizzle-orm';
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+import { db } from '@/db';
+import { drivers, rounds, sessions, results } from '@/db/schema';
+
+const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+  month: 'short',
+  day: 'numeric'
+});
+
+const allRounds = await db.select().from(rounds);
+
+const roundMeta = await db
+  .select({
+    dateHeld: sessions.dateStarted,
+    winnerFirstName: drivers.firstName,
+    winnerLastName: drivers.lastName
+  })
+  .from(results)
+  .innerJoin(sessions, eq(results.sessionId, sessions.id))
+  .innerJoin(drivers, eq(results.driverId, drivers.id))
+  .where(and(eq(sessions.type, 'r'), eq(results.position, 1)));
+---
+
+<BaseLayout title="Select a round">
+  <h1 class="text-4xl font-bold mt-28 mb-10 text-center">Select a round</h1>
+  <div
+    class="2xl:w-3/5 lg:w-2/3 w-3/4 mx-auto mb-16 grid 2xl:grid-cols-4 lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6"
+  >
+    {
+      allRounds.map((round, index) => (
+        <a
+          href={`/visualisations/rounds/${round.id}`}
+          class="bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 transition-transform hover:scale-105 focus:scale-105"
+        >
+          <img
+            class="w-full object-cover rounded-t-lg"
+            src={`/images/${round.id - 1}.png`}
+            alt={`Thumbnail for round ${round.id}`}
+            loading="lazy"
+          />
+          <div class="p-2">
+            <div class="flex items-center gap-1.5">
+              <img
+                src={`https://flagcdn.com/24x18/${round.countryCode}.png`}
+                srcset={`https://flagcdn.com/48x36/${round.countryCode}.png 2x https://flagcdn.com/72x54/${round.countryCode}.png 3x`}
+                width="24"
+                height="18"
+                alt={round.name}
+              />
+              <h5 class="text-lg uppercase font-bold tracking-tight text-gray-900 dark:text-white">
+                {round.name}
+              </h5>
+            </div>
+            <p class="font-normal">
+              Winner - {roundMeta[index].winnerFirstName}{' '}
+              {roundMeta[index].winnerLastName}
+            </p>
+            <div class="mt-2 w-full flex justify-between text-gray-700 dark:text-gray-400">
+              <span>
+                {dateFormatter.format(roundMeta[index].dateHeld as Date)}
+              </span>
+              <span>Round {round.id}</span>
+            </div>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+</BaseLayout>
