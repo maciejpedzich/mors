@@ -71,63 +71,63 @@ export const results = mysqlTable('results', {
   penaltiesSeconds: smallint('penalties_seconds')
 });
 
-export const roundsRelations = relations(rounds, ({ many }) => ({
-  sessions: many(sessions)
-}));
+// export const roundsRelations = relations(rounds, ({ many }) => ({
+//   sessions: many(sessions)
+// }));
 
-export const sessionsRelations = relations(sessions, ({ one, many }) => ({
-  round: one(rounds, {
-    fields: [sessions.roundId],
-    references: [rounds.id]
-  }),
-  laps: many(laps),
-  incidents: many(incidents),
-  results: many(results)
-}));
+// export const sessionsRelations = relations(sessions, ({ one, many }) => ({
+//   round: one(rounds, {
+//     fields: [sessions.roundId],
+//     references: [rounds.id]
+//   }),
+//   laps: many(laps),
+//   incidents: many(incidents),
+//   results: many(results)
+// }));
 
-export const teamsRelations = relations(teams, ({ many }) => ({
-  drivers: many(drivers)
-}));
+// export const teamsRelations = relations(teams, ({ many }) => ({
+//   drivers: many(drivers)
+// }));
 
-export const driversRelations = relations(drivers, ({ one, many }) => ({
-  team: one(teams, {
-    fields: [drivers.teamId],
-    references: [teams.id]
-  }),
-  laps: many(laps),
-  incidents: many(incidents),
-  results: many(results)
-}));
+// export const driversRelations = relations(drivers, ({ one, many }) => ({
+//   team: one(teams, {
+//     fields: [drivers.teamId],
+//     references: [teams.id]
+//   }),
+//   laps: many(laps),
+//   incidents: many(incidents),
+//   results: many(results)
+// }));
 
-export const lapsRelations = relations(laps, ({ one }) => ({
-  session: one(sessions, {
-    fields: [laps.sessionId],
-    references: [sessions.id]
-  }),
-  driver: one(drivers, {
-    fields: [laps.driverId],
-    references: [drivers.id]
-  })
-}));
+// export const lapsRelations = relations(laps, ({ one }) => ({
+//   session: one(sessions, {
+//     fields: [laps.sessionId],
+//     references: [sessions.id]
+//   }),
+//   driver: one(drivers, {
+//     fields: [laps.driverId],
+//     references: [drivers.id]
+//   })
+// }));
 
-export const incidentRelations = relations(incidents, ({ one }) => ({
-  session: one(sessions, {
-    fields: [incidents.sessionId],
-    references: [sessions.id]
-  }),
-  driver: one(drivers, {
-    fields: [incidents.driverId],
-    references: [drivers.id]
-  })
-}));
+// export const incidentRelations = relations(incidents, ({ one }) => ({
+//   session: one(sessions, {
+//     fields: [incidents.sessionId],
+//     references: [sessions.id]
+//   }),
+//   driver: one(drivers, {
+//     fields: [incidents.driverId],
+//     references: [drivers.id]
+//   })
+// }));
 
-export const resultsRelations = relations(results, ({ one }) => ({
-  session: one(sessions, {
-    fields: [results.sessionId],
-    references: [sessions.id]
-  }),
-  driver: one(drivers, {
-    fields: [results.driverId],
-    references: [drivers.id]
-  })
-}));
+// export const resultsRelations = relations(results, ({ one }) => ({
+//   session: one(sessions, {
+//     fields: [results.sessionId],
+//     references: [sessions.id]
+//   }),
+//   driver: one(drivers, {
+//     fields: [results.driverId],
+//     references: [drivers.id]
+//   })
+// }));
