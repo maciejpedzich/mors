@@ -43,6 +43,7 @@ export const laps = mysqlTable('laps', {
   id: smallint('id').primaryKey().autoincrement(),
   driverId: smallint('driver_id'),
   sessionId: smallint('session_id'),
+  lapNumber: smallint('lap_number'),
   tyreCompound: mysqlEnum('tyre_compound', ['s', 'm', 'h', 'i', 'w']),
   sector1TimeMs: mediumint('sector1_time_ms'),
   sector2TimeMs: mediumint('sector2_time_ms'),
