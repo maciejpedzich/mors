@@ -33,8 +33,8 @@ const roundMeta = await db
     {
       allRounds.map((round, index) => (
         <a
-          href={`/visualisations/rounds/${round.id}`}
-          class="bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 transition-transform hover:scale-105 focus:scale-105"
+          href={`/visualisations/rounds/${round.id}/results/race`}
+          class="bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 transition-transform duration-300 hover:scale-105 focus:scale-105"
         >
           <img
             class="w-full object-cover rounded-t-lg"
