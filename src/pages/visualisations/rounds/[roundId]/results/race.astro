@@ -1,0 +1,134 @@
+---
+import { and, asc, eq, sql } from 'drizzle-orm';
+import { default as formatDuration } from 'format-duration';
+import pluralize from 'pluralize';
+
+import { db } from '@/db';
+import { laps, sessions, results, drivers, teams } from '@/db/schema';
+
+import DataVisDashboard from '@/layouts/DataVisDashboard.astro';
+
+const { roundId } = Astro.params;
+const { roundName } = Astro.locals;
+
+const lapsMetadata = db.$with('laps_metadata').as(
+  db
+    .select({
+      driverId: laps.driverId,
+      numLapsRaced: sql<number>`MAX(${laps.lapNumber})`.as('num_laps_raced'),
+      raceTimeNoPensMs: sql<number>`SUM(${laps.totalTimeMs})`.as(
+        'race_time_no_pens_ms'
+      )
+    })
+    .from(laps)
+    .innerJoin(sessions, eq(laps.sessionId, sessions.id))
+    .where(and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, 'r')))
+    .groupBy(laps.driverId)
+);
+
+const raceResultsWithoutGaps = db.$with('race_results').as(
+  db
+    .select({
+      position: results.position,
+      driverId: results.driverId,
+      status: results.status,
+      points: results.points,
+      firstName: drivers.firstName,
+      lastName: drivers.lastName,
+      team: teams.name,
+      numLapsRaced: lapsMetadata.numLapsRaced,
+      totalRaceTimeMs:
+        sql<number>`${lapsMetadata.raceTimeNoPensMs} + (${results.penaltiesSeconds} * 1000)`
+          .mapWith(Number)
+          .as('total_race_time_ms')
+    })
+    .from(results)
+    .innerJoin(sessions, eq(results.sessionId, sessions.id))
+    .innerJoin(drivers, eq(results.driverId, drivers.id))
+    .innerJoin(teams, eq(drivers.teamId, teams.id))
+    .innerJoin(lapsMetadata, eq(results.driverId, lapsMetadata.driverId))
+    .where(and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, 'r')))
+);
+
+const raceResults = await db
+  .with(lapsMetadata, raceResultsWithoutGaps)
+  .select({
+    // I wish there was a way to select all columns of a CTE in a single line
+    position: raceResultsWithoutGaps.position,
+    driverId: raceResultsWithoutGaps.driverId,
+    status: raceResultsWithoutGaps.status,
+    points: raceResultsWithoutGaps.points,
+    firstName: raceResultsWithoutGaps.firstName,
+    lastName: raceResultsWithoutGaps.lastName,
+    team: raceResultsWithoutGaps.team,
+    numLapsRaced: raceResultsWithoutGaps.numLapsRaced,
+    totalRaceTimeMs: raceResultsWithoutGaps.totalRaceTimeMs,
+    gapToLeaderMs: sql<number>`
+        ${raceResultsWithoutGaps.totalRaceTimeMs}
+        - MIN(${raceResultsWithoutGaps.totalRaceTimeMs}) OVER (
+            ORDER BY
+            ${raceResultsWithoutGaps.position} ASC
+          )
+      `.mapWith(Number),
+    numLapsToLeader: sql<number>`
+        MAX(${raceResultsWithoutGaps.numLapsRaced}) OVER (
+          ORDER BY
+          ${raceResultsWithoutGaps.position} ASC
+        ) - ${raceResultsWithoutGaps.numLapsRaced}
+      `.mapWith(Number)
+  })
+  .from(raceResultsWithoutGaps)
+  .groupBy(raceResultsWithoutGaps.driverId)
+  .orderBy(asc(raceResultsWithoutGaps.position));
+---
+
+<DataVisDashboard title="Race Results">
+  <h1 class="text-4xl text-center font-bold mb-6">
+    {roundName} - Race Results
+  </h1>
+  <div class="relative overflow-x-auto">
+    <table
+      class="w-4/5 mx-auto mb-12 border dark:border-gray-700 text-left dark:text-gray-400"
+    >
+      <thead
+        class="text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+      >
+        <tr>
+          <th scope="col" class="px-6 py-3">Position</th>
+          <th scope="col" class="px-6 py-3">Car</th>
+          <th scope="col" class="px-6 py-3">Driver</th>
+          <th scope="col" class="px-6 py-3">Team</th>
+          <th scope="col" class="px-6 py-3">Laps</th>
+          <th scope="col" class="px-6 py-3">Time/Status</th>
+          <th scope="col" class="px-6 py-3">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          raceResults.map((result) => (
+            <tr class="bg-white border-b dark:bg-gray-900 dark:border-gray-700">
+              <td class="px-6 py-4">{result.position}</td>
+              <td class="px-6 py-4">{result.driverId}</td>
+              <td class="px-6 py-4">
+                {result.firstName} {result.lastName}
+              </td>
+              <td class="px-6 py-4 uppercase">{result.team}</td>
+              <td class="px-6 py-4">{result.numLapsRaced}</td>
+              <td class="px-6 py-4 uppercase">
+                {result.position === 1
+                  ? formatDuration(result.totalRaceTimeMs, { ms: true })
+                  : result.status === 'fin'
+                  ? '+' +
+                    (result.numLapsToLeader === 0
+                      ? formatDuration(result.gapToLeaderMs, { ms: true })
+                      : pluralize('lap', result.numLapsToLeader, true))
+                  : result.status}
+              </td>
+              <td class="px-6 py-4">{result.points}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</DataVisDashboard>
