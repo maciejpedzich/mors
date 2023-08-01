@@ -26,14 +26,14 @@ const roundMeta = await db
 ---
 
 <BaseLayout title="Select a round">
-  <h1 class="text-4xl font-bold mt-28 mb-10 text-center">Select a round</h1>
+  <h1 class="text-4xl font-bold mt-28 mb-6 text-center">Select a round</h1>
   <div
     class="2xl:w-3/5 lg:w-2/3 w-3/4 mx-auto mb-16 grid 2xl:grid-cols-4 lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6"
   >
     {
       allRounds.map((round, index) => (
         <a
-          href={`/visualisations/rounds/${round.id}/results/race`}
+          href={`/visualisations/rounds/${round.id}/race/results`}
           class="bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 transition-transform duration-300 hover:scale-105 focus:scale-105"
         >
           <img
