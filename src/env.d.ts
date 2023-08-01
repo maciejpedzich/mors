@@ -10,6 +10,6 @@ interface ImportMeta {
 
 declare namespace App {
   interface Locals {
-    roundName: string;
+    roundName?: string;
   }
 }

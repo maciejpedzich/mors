@@ -1,25 +1,27 @@
 import { defineMiddleware } from 'astro/middleware';
 
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { rounds } from '@/db/schema';
 
 export const onRequest = defineMiddleware(
-  async ({ locals, params, redirect }, next) => {
+  async ({ params, locals, redirect }, next) => {
     const { roundId } = params;
 
-    if (!roundId) return next();
+    if (roundId) {
+      const [foundRound] = await db
+        .select({ name: rounds.name })
+        .from(rounds)
+        .where(eq(rounds.id, Number(roundId)));
 
-    const [round] = await db
-      .select({ name: rounds.name })
-      .from(rounds)
-      .where(eq(rounds.id, Number(roundId)));
-
-    if (round) {
-      locals.roundName = round.name as string;
-      return next();
+      if (foundRound) {
+        locals.roundName = foundRound.name;
+        return next();
+      } else {
+        return redirect('/404');
+      }
     } else {
-      return redirect('/404');
+      return next();
     }
   }
 );
