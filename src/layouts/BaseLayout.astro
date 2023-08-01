@@ -2,15 +2,16 @@
 import '@fontsource/titillium-web/400.css';
 import '@fontsource/titillium-web/700.css';
 
-import Header from '../components/ui/Header.astro';
+import MainNavbar from '../components/ui/MainNavbar.astro';
+import DashboardNavbar from '../components/ui/DashboardNavbar.astro';
 import Footer from '../components/ui/Footer.astro';
 
 export interface Props {
   title: string;
-  class?: string;
 }
 
-const { title, class: _class } = Astro.props;
+const { title } = Astro.props;
+const { roundId } = Astro.params;
 
 const titleToUse =
   title === 'Home'
@@ -42,17 +43,15 @@ const titleToUse =
       }
     </script>
   </head>
-  <body
-    class="w-screen h-screen flex flex-col bg-gray-100 dark:bg-gray-900 dark:text-white"
-  >
-    <Header />
-    <slot name="sidebar" />
-    <div class:list={['flex-1', _class]}>
-      <main>
-        <slot />
-      </main>
-      <Footer />
-    </div>
+  <body class="bg-gray-100 dark:bg-gray-900 dark:text-white">
+    <header class="top-0 left-0 w-full fixed z-50">
+      <MainNavbar />
+      {roundId && <DashboardNavbar />}
+    </header>
+    <main>
+      <slot />
+    </main>
+    <Footer />
     <script
       is:inline
       src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.7.0/flowbite.min.js"
