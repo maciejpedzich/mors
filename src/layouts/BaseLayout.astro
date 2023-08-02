@@ -2,6 +2,9 @@
 import '@fontsource/titillium-web/400.css';
 import '@fontsource/titillium-web/700.css';
 
+import { getName, registerLocale } from 'i18n-nationality';
+import en from 'i18n-nationality/langs/en.json';
+
 import MainNavbar from '../components/ui/MainNavbar.astro';
 import DashboardNavbar from '../components/ui/DashboardNavbar.astro';
 import Footer from '../components/ui/Footer.astro';
@@ -17,6 +20,8 @@ const titleToUse =
   title === 'Home'
     ? "Mac's Online Racing Stats"
     : `${title} - Mac's Online Racing Stats`;
+
+registerLocale(en);
 ---
 
 <!DOCTYPE html>

@@ -3,15 +3,12 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { default as formatDuration } from 'format-duration';
 import pluralize from 'pluralize';
 
-import { getName, registerLocale } from 'i18n-nationality';
-import en from 'i18n-nationality/langs/en.json';
+import { getName } from 'i18n-nationality';
 
 import { db } from '@/db';
 import { laps, sessions, results, drivers, teams } from '@/db/schema';
 
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
-
-registerLocale(en);
 
 const { roundId } = Astro.params;
 const { roundName } = Astro.locals;
@@ -38,10 +35,8 @@ const raceResultsWithoutGaps = db.$with('race_results').as(
       driverId: results.driverId,
       status: results.status,
       points: results.points,
-      fullName:
-        sql<string>`CONCAT(${drivers.firstName}, ' ', ${drivers.lastName})`.as(
-          'full_name'
-        ),
+      firstName: drivers.firstName,
+      lastName: drivers.lastName,
       nationality: drivers.countryCode,
       team: teams.name,
       numLapsRaced: lapsMetadata.numLapsRaced,
@@ -67,7 +62,8 @@ const raceResults = await db
     driverId: raceResultsWithoutGaps.driverId,
     status: raceResultsWithoutGaps.status,
     points: raceResultsWithoutGaps.points,
-    fullName: raceResultsWithoutGaps.fullName,
+    firstName: raceResultsWithoutGaps.firstName,
+    lastName: raceResultsWithoutGaps.lastName,
     nationality: raceResultsWithoutGaps.nationality,
     team: raceResultsWithoutGaps.team,
     numLapsRaced: raceResultsWithoutGaps.numLapsRaced,
@@ -129,7 +125,9 @@ const raceResults = await db
                   alt={getName(result.nationality, 'en')}
                 />
               </td>
-              <td class="px-6 py-4">{result.fullName}</td>
+              <td class="px-6 py-4">
+                {result.firstName} {result.lastName}
+              </td>
               <td class="px-6 py-4 uppercase">{result.team}</td>
               <td class="px-6 py-4">{result.numLapsRaced}</td>
               <td class="px-6 py-4 uppercase">
