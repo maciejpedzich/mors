@@ -38,7 +38,7 @@ const roundMeta = await db
         >
           <img
             class="w-full object-cover rounded-t-lg"
-            src={`/images/${round.id - 1}.png`}
+            src={`/images/thumbnails/${round.id}.png`}
             alt={`Thumbnail for round ${round.id}`}
             loading="lazy"
           />
@@ -50,6 +50,7 @@ const roundMeta = await db
                 width="24"
                 height="18"
                 alt={round.name}
+                loading="lazy"
               />
               <h5 class="text-lg uppercase font-bold tracking-tight text-gray-900 dark:text-white">
                 {round.name}
