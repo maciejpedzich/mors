@@ -1,0 +1,150 @@
+---
+import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
+import type { ApexOptions } from 'apexcharts';
+
+import { db } from '@/db';
+import { drivers, laps, sessions } from '@/db/schema';
+import { formatDurationInMs } from '@/utils/formatDurationInMs';
+
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import Chart from '@/components/ui/Chart.astro';
+
+export interface Props {
+  sessionType: 'p' | 'q' | 'r';
+}
+
+const { roundId } = Astro.params;
+const { sessionType } = Astro.props;
+const title =
+  ['Practice', 'Qualifying', 'Race'].find((sessionName) =>
+    sessionName.startsWith(sessionType.toUpperCase())
+  ) + ' Summary';
+
+const sessionIdToUse = db.$with('session_id_to_use').as(
+  db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(
+      and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, sessionType))
+    )
+);
+
+const driversPersonalBestTimes = db.$with('drivers_personal_best_times').as(
+  db
+    .select({
+      driverId: laps.driverId,
+      totalTimeMs: sql<number>`MIN(${laps.totalTimeMs})`.as('total_time_ms')
+    })
+    .from(laps)
+    .where(
+      and(
+        eq(laps.valid, true),
+        gt(laps.sector1TimeMs, 0),
+        gt(laps.sector2TimeMs, 0),
+        gt(laps.sector3TimeMs, 0),
+        inArray(laps.sessionId, db.select().from(sessionIdToUse))
+      )
+    )
+    .groupBy(laps.driverId)
+);
+
+const resultsSummary = await db
+  .with(sessionIdToUse, driversPersonalBestTimes)
+  .select({
+    firstName: drivers.firstName,
+    lastName: drivers.lastName,
+    lapTimeMs: driversPersonalBestTimes.totalTimeMs,
+    gapToWinnerMs: sql<number>`
+      ${driversPersonalBestTimes.totalTimeMs}
+      - MIN(${driversPersonalBestTimes.totalTimeMs}) OVER (
+          ORDER BY ${driversPersonalBestTimes.totalTimeMs} ASC
+        )
+    `.mapWith(Number)
+  })
+  .from(driversPersonalBestTimes)
+  .innerJoin(drivers, eq(driversPersonalBestTimes.driverId, drivers.id))
+  .orderBy(asc(driversPersonalBestTimes.totalTimeMs));
+
+const topThreeDrivers = resultsSummary.slice(0, 3);
+
+const chartOptions: ApexOptions = {
+  series: [
+    {
+      name: 'Gap to winner',
+      data: resultsSummary.map(({ gapToWinnerMs }) => gapToWinnerMs)
+    }
+  ],
+  chart: {
+    type: 'bar'
+  },
+  plotOptions: {
+    bar: {
+      horizontal: true
+    }
+  },
+  xaxis: {
+    categories: resultsSummary.map(({ lastName }) => lastName),
+    labels: {
+      style: {
+        fontSize: '14px'
+      }
+    }
+  },
+  yaxis: {
+    labels: {
+      offsetY: 4,
+      style: {
+        fontSize: '16px'
+      }
+    }
+  }
+};
+---
+
+<DashboardLayout title={title}>
+  <div class="w-5/6 mx-auto">
+    <div
+      class="grid md:grid-cols-3 grid-cols-1 md:grid-rows-1 grid-rows-3 md:gap-8 gap-4"
+    >
+      {
+        topThreeDrivers.map((driver, index) => (
+          <div
+            class:list={[
+              index === 0
+                ? 'md:order-2 order-1'
+                : index === 1
+                ? 'md:order-1 order-2'
+                : 'order-3'
+            ]}
+            class="flex flex-col justify-center gap-1 p-3 text-center bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+          >
+            <h5 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+              {formatDurationInMs(driver.lapTimeMs)}
+            </h5>
+            <p class="text-xl text-gray-700 dark:text-gray-400">
+              P{index + 1} - {driver.firstName} {driver.lastName}
+            </p>
+            {driver.gapToWinnerMs == 0 ? (
+              <span class="text-xl text-purple-700 dark:text-purple-400">
+                Winner
+              </span>
+            ) : (
+              <p class="text-xl text-gray-700 dark:text-gray-400">
+                <span class="text-red-700 dark:text-red-400">
+                  {'+' + formatDurationInMs(driver.gapToWinnerMs)}
+                </span>
+                to winner
+              </p>
+            )}
+          </div>
+        ))
+      }
+    </div>
+    <h2 class="mt-12 text-3xl text-center font-bold">
+      Gap to winner in seconds
+    </h2>
+    <div class="lg:w-3/5 md:w-5/6 w-11/12 mx-auto">
+      <Chart options={chartOptions} page="summary" />
+    </div>
+  </div>
+</DashboardLayout>
