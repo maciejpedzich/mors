@@ -1,0 +1,122 @@
+---
+import type { ApexOptions } from 'apexcharts';
+
+export interface Props {
+  options: ApexOptions;
+  page?: 'summary';
+}
+
+const { options, page } = Astro.props;
+---
+
+<script>
+  import ApexCharts, { ApexOptions } from 'apexcharts';
+  import { deepmerge } from 'deepmerge-ts';
+  import { formatDurationInMs } from '@/utils/formatDurationInMs';
+
+  class ChartElement extends HTMLElement {
+    getChartOptions() {
+      const formatterToUse = this.dataset.formatter;
+
+      const formatterObj =
+        formatterToUse === 'summary'
+          ? {
+              formatter(value: number | string) {
+                return '+' + formatDurationInMs(Number(value));
+              }
+            }
+          : {};
+
+      const defaults: ApexOptions = {
+        chart: {
+          foreColor: document.documentElement.classList.contains('dark')
+            ? '#9ca3af'
+            : '#111827',
+          fontFamily: 'Titillium Web, sans-serif',
+          toolbar: {
+            show: false
+          }
+        },
+        tooltip: {
+          y: formatterObj
+        },
+        grid: {
+          show: false
+        },
+        dataLabels: {
+          enabled: false
+        },
+        xaxis: {
+          labels: formatterObj
+        }
+      };
+
+      const passedOptions = JSON.parse(
+        this.dataset.options as string
+      ) as ApexOptions;
+
+      return deepmerge(defaults, passedOptions);
+    }
+
+    constructor() {
+      super();
+
+      const chartOptions = this.getChartOptions();
+      const chartContainer = this.querySelector('div');
+      const chart = new ApexCharts(chartContainer, chartOptions);
+
+      chart.render();
+
+      const observer = new MutationObserver(() => {
+        chart.updateOptions(this.getChartOptions());
+      });
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    }
+  }
+
+  customElements.define('apex-chart', ChartElement);
+</script>
+
+<apex-chart data-options={JSON.stringify(options)} data-formatter={page}>
+  <div></div>
+</apex-chart>
+
+<style is:global>
+  /*
+    Shamelessly stolen from:
+    https://github.com/themesberg/flowbite-astro-admin-dashboard/blob/e330ee5cf7993ca0fe61d28d3f1f1342f49e525c/src/modules/DashBoard.astro#L3398C1-L3424C9
+  */
+
+  .apexcharts-tooltip {
+    @apply bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-200 border-0 rounded-lg shadow-lg !important;
+  }
+
+  .apexcharts-tooltip .apexcharts-tooltip-title {
+    @apply text-base py-2 px-4 bg-gray-100 dark:bg-gray-600 border-b border-gray-200 dark:border-gray-500 !important;
+  }
+
+  .apexcharts-xaxistooltip {
+    @apply text-gray-500 border-0 bg-white dark:bg-gray-700 dark:text-gray-200 rounded-lg shadow-lg !important;
+  }
+
+  .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
+    @apply text-base;
+  }
+
+  .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
+    @apply text-base dark:text-white;
+  }
+
+  .apexcharts-xaxistooltip-text {
+    @apply font-medium text-lg !important;
+  }
+
+  .apexcharts-xaxistooltip:before,
+  .apexcharts-xaxistooltip:after {
+    @apply border-0 !important;
+  }
+</style>
