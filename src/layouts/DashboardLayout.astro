@@ -7,10 +7,14 @@ export interface Props {
 
 const { title } = Astro.props;
 const { roundName } = Astro.locals;
+const headerTitle = `${roundName} - ${title}`;
 ---
 
-<BaseLayout title={`${roundName} - ${title}`}>
-  <section class="mx-auto pt-40 pb-14">
+<BaseLayout title={headerTitle}>
+  <section class="mx-auto pt-40 pb-12">
+    <h1 class="text-4xl text-center font-bold mb-6">
+      {headerTitle}
+    </h1>
     <slot />
   </section>
 </BaseLayout>
