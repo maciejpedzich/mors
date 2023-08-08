@@ -2,7 +2,7 @@
 import '@fontsource/titillium-web/400.css';
 import '@fontsource/titillium-web/700.css';
 
-import { getName, registerLocale } from 'i18n-nationality';
+import { registerLocale } from 'i18n-nationality';
 import en from 'i18n-nationality/langs/en.json';
 
 import MainNavbar from '../components/ui/MainNavbar.astro';
@@ -57,9 +57,8 @@ registerLocale(en);
       <slot />
     </main>
     <Footer />
-    <script
-      is:inline
-      src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.7.0/flowbite.min.js"
-    ></script>
+    <script>
+      import 'flowbite';
+    </script>
   </body>
 </html>
