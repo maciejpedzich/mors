@@ -16,6 +16,7 @@
     "@fontsource/titillium-web": "^5.0.5",
     "apexcharts": "^3.41.1",
     "astro": "^2.8.1",
+    "deepmerge-ts": "^5.1.0",
     "drizzle-orm": "^0.27.2",
     "flowbite": "^1.7.0",
     "format-duration": "^3.0.2",
