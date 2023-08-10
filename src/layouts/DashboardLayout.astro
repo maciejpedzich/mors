@@ -7,7 +7,7 @@ export interface Props {
 
 const { title } = Astro.props;
 const { roundName } = Astro.locals;
-const headerTitle = `${roundName} - ${title}`;
+const headerTitle = roundName ? `${roundName} - ${title}` : title;
 ---
 
 <BaseLayout title={headerTitle}>

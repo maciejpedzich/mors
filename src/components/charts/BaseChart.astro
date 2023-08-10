@@ -27,14 +27,23 @@ const { options, page } = Astro.props;
             }
           : {};
 
-      const defaults: ApexOptions = {
+      const defaultChartOptions: ApexOptions = {
         chart: {
           foreColor: document.documentElement.classList.contains('dark')
-            ? '#9ca3af'
+            ? '#eeeeee'
             : '#111827',
           fontFamily: 'Titillium Web, sans-serif',
           toolbar: {
             show: false
+          }
+        },
+        title: {
+          align: 'center',
+          style: {
+            color: document.documentElement.classList.contains('dark')
+              ? '#eeeeee'
+              : '#000000',
+            fontSize: '28px'
           }
         },
         tooltip: {
@@ -55,7 +64,7 @@ const { options, page } = Astro.props;
         this.dataset.options as string
       ) as ApexOptions;
 
-      return deepmerge(defaults, passedOptions);
+      return deepmerge(defaultChartOptions, passedOptions);
     }
 
     constructor() {

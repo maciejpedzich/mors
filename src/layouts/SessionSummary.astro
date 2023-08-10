@@ -7,7 +7,7 @@ import { drivers, laps, sessions } from '@/db/schema';
 import { formatDurationInMs } from '@/utils/formatDurationInMs';
 
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
-import Chart from '@/components/ui/Chart.astro';
+import BaseChart from '@/components/charts/BaseChart.astro';
 
 export interface Props {
   sessionType: 'p' | 'q' | 'r';
@@ -53,6 +53,7 @@ const resultsSummary = await db
   .select({
     firstName: drivers.firstName,
     lastName: drivers.lastName,
+    teamId: drivers.teamId,
     lapTimeMs: driversPersonalBestTimes.totalTimeMs,
     gapToWinnerMs: sql<number>`
       ${driversPersonalBestTimes.totalTimeMs}
@@ -76,6 +77,9 @@ const chartOptions: ApexOptions = {
   ],
   chart: {
     type: 'bar'
+  },
+  title: {
+    text: 'Gap to winner (in seconds)'
   },
   plotOptions: {
     bar: {
@@ -140,11 +144,8 @@ const chartOptions: ApexOptions = {
         ))
       }
     </div>
-    <h2 class="mt-12 text-3xl text-center font-bold">
-      Gap to winner in seconds
-    </h2>
-    <div class="lg:w-3/5 md:w-5/6 w-11/12 mx-auto">
-      <Chart options={chartOptions} page="summary" />
+    <div class="mt-12 lg:w-3/5 md:w-5/6 w-11/12 mx-auto">
+      <BaseChart options={chartOptions} page="summary" />
     </div>
   </div>
 </DashboardLayout>
