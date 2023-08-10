@@ -1,0 +1,172 @@
+---
+import { asc, desc, eq, sql } from 'drizzle-orm';
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ColumnTotalPointsScored from '@/components/charts/championships/drivers/ColumnTotalPointsScored.astro';
+import PieNumPolePositions from '@/components/charts/championships/drivers/PieNumPolePositions.astro';
+import PieNumRaceWins from '@/components/charts/championships/drivers/PieNumRaceWins.astro';
+import PieNumFastestLaps from '@/components/charts/championships/drivers/PieNumFastestLaps.astro';
+
+import { db } from '@/db';
+import { drivers, results, rounds, sessions, teams } from '@/db/schema';
+
+const allRounds = await db.select().from(rounds);
+
+const driversStandings = await db
+  .select({
+    firstName: drivers.firstName,
+    lastName: drivers.lastName,
+    team: teams.name,
+    resultsHistory: sql`
+    GROUP_CONCAT(
+      IF(
+        ${results.status} = 'fin',
+        ${results.position},
+        ${results.status}
+      )
+    )`.mapWith({
+      mapFromDriverValue(value: string) {
+        return value.split(',').map((result) => Number(result) || result);
+      }
+    }),
+    totalPoints: sql<number>`SUM(${results.points})`
+  })
+  .from(results)
+  .innerJoin(sessions, eq(results.sessionId, sessions.id))
+  .innerJoin(drivers, eq(results.driverId, drivers.id))
+  .innerJoin(teams, eq(drivers.teamId, teams.id))
+  .where(eq(sessions.type, 'r'))
+  .groupBy(results.driverId)
+  .orderBy(
+    desc(sql<number>`SUM(${results.points})`),
+    asc(
+      sql<string>`GROUP_CONCAT(${results.points} ORDER BY ${results.position} ASC)`
+    )
+  );
+---
+
+<BaseLayout title="Drivers' Championship">
+  <h1 class="text-4xl text-center font-bold mt-28 mb-10">
+    Drivers' Championship
+  </h1>
+  <div class="w-4/5 mx-auto grid grid-cols-6 grid-rows-5 gap-7">
+    <div
+      class="px-4 pt-6 col-span-6 row-span-3 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+    >
+      <ColumnTotalPointsScored />
+    </div>
+    <div
+      class="p-4 col-span-2 row-span-2 row-start-4 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+    >
+      <PieNumPolePositions />
+    </div>
+    <div
+      class="p-4 col-span-2 row-span-2 row-start-4 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+    >
+      <PieNumRaceWins />
+    </div>
+    <div
+      class="p-4 col-span-2 row-span-2 col-start-5 row-start-4 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+    >
+      <PieNumFastestLaps />
+    </div>
+  </div>
+  <h2 class="text-3xl text-center font-bold mt-8 mb-4">Drivers' Standings</h2>
+  <div class="relative overflow-x-auto">
+    <table
+      class="w-4/5 mx-auto border border-gray-200 text-sm text-center dark:text-gray-400 dark:border-gray-700"
+    >
+      <thead
+        class="text-base text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+      >
+        <th scope="col" class="p-1">Position</th>
+        <th scope="col" class="p-1">Driver</th>
+        <th scope="col" class="p-1">Team</th>
+        {
+          allRounds.map((round) => (
+            <th scope="col">
+              <img
+                class="mx-auto"
+                src={`https://flagcdn.com/24x18/${round.countryCode}.png`}
+                srcset={`https://flagcdn.com/48x36/${round.countryCode}.png 2x https://flagcdn.com/72x54/${round.countryCode}.png 3x`}
+                width="24"
+                height="18"
+                alt={round.name}
+                title={round.name}
+                loading="lazy"
+              />
+            </th>
+          ))
+        }
+        <th scope="col" class="p-1">Points</th>
+      </thead>
+      <tbody>
+        {
+          driversStandings.map((driver, index) => (
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+              <td class="p-1">{index + 1}</td>
+              <td class="p-1">
+                {driver.firstName} {driver.lastName}
+              </td>
+              <td class="p-1">{driver.team}</td>
+              {driver.resultsHistory.map((result) => (
+                <td
+                  class="border border-black uppercase"
+                  class:list={[
+                    typeof result === 'number'
+                      ? result === 1
+                        ? 'bg-yellow-300 text-black'
+                        : result === 2
+                        ? 'bg-gray-300 text-black'
+                        : result === 3
+                        ? 'bg-yellow-700 text-white'
+                        : result <= 10
+                        ? 'bg-green-300 text-black'
+                        : 'bg-blue-300 text-black'
+                      : result === 'dnf' || result === 'ret'
+                      ? 'bg-red-300 text-black'
+                      : 'bg-black text-white'
+                  ]}
+                >
+                  {result}
+                </td>
+              ))}
+              <td class="p-1">{driver.totalPoints}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <h3 class="text-2xl mt-4 text-center">Legend</h3>
+  <div class="mt-2 mb-12 flex justify-center gap-3">
+    <div>
+      <span class="bg-yellow-300 text-black border border-black px-4">1</span>
+      - first position
+    </div>
+    <div>
+      <span class="bg-gray-300 text-black border border-black px-4">2</span>
+      - second position
+    </div>
+    <div>
+      <span class="bg-yellow-700 text-white border border-black px-4">3</span>
+      - third position
+    </div>
+    <div>
+      <span class="bg-green-300 text-black border border-black px-4">4</span>
+      - points-scoring position
+    </div>
+    <div>
+      <span class="bg-blue-300 text-black border border-black px-3">11</span>
+      - non-points-scoring position
+    </div>
+    <div>
+      <span class="bg-red-300 text-black border border-black px-2">DNF</span>
+      - Retired/Did Not Finish
+    </div>
+    <div>
+      <span class="bg-black text-white border border-black px-2">DSQ</span>
+      - Disqualified
+    </div>
+  </div>
+</BaseLayout>

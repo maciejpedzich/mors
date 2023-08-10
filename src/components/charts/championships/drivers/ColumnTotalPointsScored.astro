@@ -1,0 +1,52 @@
+---
+import { desc, eq, inArray, sql } from 'drizzle-orm';
+import type { ApexOptions } from 'apexcharts';
+
+import { db } from '@/db';
+import { results, drivers, sessions } from '@/db/schema';
+
+import BaseChart from '@/components/charts/BaseChart.astro';
+
+const driversTotalPoints = db.$with('drivers_points_scored').as(
+  db
+    .select({
+      driverId: results.driverId,
+      totalPoints: sql<number>`SUM(${results.points})`.as('total_points')
+    })
+    .from(results)
+    .innerJoin(sessions, eq(results.sessionId, sessions.id))
+    .where(eq(sessions.type, 'r'))
+    .groupBy(results.driverId)
+);
+
+const chartData = await db
+  .with(driversTotalPoints)
+  .select({
+    name: drivers.lastName,
+    totalPoints: driversTotalPoints.totalPoints
+  })
+  .from(driversTotalPoints)
+  .innerJoin(drivers, eq(driversTotalPoints.driverId, drivers.id))
+  .orderBy(desc(driversTotalPoints.totalPoints));
+
+const chartOptions: ApexOptions = {
+  series: [
+    {
+      name: 'Points',
+      data: chartData.map(({ totalPoints }) => totalPoints)
+    }
+  ],
+  title: {
+    text: 'Total Points'
+  },
+  chart: {
+    type: 'bar',
+    height: 550
+  },
+  xaxis: {
+    categories: chartData.map(({ name }) => name)
+  }
+};
+---
+
+<BaseChart options={chartOptions} />

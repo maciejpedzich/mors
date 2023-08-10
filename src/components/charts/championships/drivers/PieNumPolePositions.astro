@@ -1,0 +1,61 @@
+---
+import { and, eq, notExists, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { drivers, incidents, results, sessions } from '@/db/schema';
+
+import PieChart from '../../PieChart.astro';
+
+const resultsExcludingGridPenalties = db
+  .$with('results_excluding_drivers_with_grid_penalties')
+  .as(
+    db
+      .select({
+        driverId: results.driverId,
+        newPosition: sql<number>`
+          RANK() OVER (
+            PARTITION BY ${results.sessionId}
+            ORDER BY ${results.position} ASC
+          )
+        `.as('new_position')
+      })
+      .from(results)
+      .innerJoin(sessions, eq(results.sessionId, sessions.id))
+      .where(
+        and(
+          eq(sessions.type, 'q'),
+          notExists(
+            db
+              .select({ '1': sql<number>`1` })
+              .from(incidents)
+              .where(
+                and(
+                  eq(incidents.sessionId, results.sessionId),
+                  eq(incidents.driverId, results.driverId),
+                  eq(incidents.penalty, 2) // 2 - Grid Penalty
+                )
+              )
+          )
+        )
+      )
+  );
+
+const chartData = await db
+  .with(resultsExcludingGridPenalties)
+  .select({
+    name: drivers.lastName,
+    numPoles: sql<number>`COUNT(${resultsExcludingGridPenalties.driverId})`
+  })
+  .from(resultsExcludingGridPenalties)
+  .innerJoin(drivers, eq(resultsExcludingGridPenalties.driverId, drivers.id))
+  .where(eq(resultsExcludingGridPenalties.newPosition, 1))
+  .groupBy(resultsExcludingGridPenalties.driverId);
+
+const pieChartProps = {
+  title: 'Pole Positions',
+  series: chartData.map(({ numPoles }) => numPoles),
+  labels: chartData.map(({ name }) => name)
+};
+---
+
+<PieChart {...pieChartProps} />

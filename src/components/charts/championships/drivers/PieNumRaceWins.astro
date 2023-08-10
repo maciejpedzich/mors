@@ -1,0 +1,27 @@
+---
+import { and, eq, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { drivers, results, sessions } from '@/db/schema';
+
+import PieChart from '../../PieChart.astro';
+
+const chartData = await db
+  .select({
+    name: drivers.lastName,
+    numRaceWins: sql<number>`COUNT(${results.position})`
+  })
+  .from(results)
+  .innerJoin(sessions, eq(results.sessionId, sessions.id))
+  .innerJoin(drivers, eq(results.driverId, drivers.id))
+  .where(and(eq(sessions.type, 'r'), eq(results.position, 1)))
+  .groupBy(results.driverId);
+
+const pieChartProps = {
+  title: 'Race Wins',
+  series: chartData.map(({ numRaceWins }) => numRaceWins),
+  labels: chartData.map(({ name }) => name)
+};
+---
+
+<PieChart {...pieChartProps} />

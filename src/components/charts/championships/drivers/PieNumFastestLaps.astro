@@ -1,0 +1,55 @@
+---
+import { and, eq, gt, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { sessions, laps, drivers } from '@/db/schema';
+
+import PieChart from '../../PieChart.astro';
+
+const validLapsRanked = db.$with('valid_laps_ranked').as(
+  db
+    .select({
+      driverId: laps.driverId,
+      lapTimeRowNum: sql<number>`
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            ${laps.sessionId}
+          ORDER BY
+            ${laps.totalTimeMs} ASC,
+            ${laps.lapNumber} ASC
+        )
+      `.as('lap_time_row_num')
+    })
+    .from(laps)
+    .innerJoin(sessions, eq(laps.sessionId, sessions.id))
+    .where(
+      and(
+        eq(sessions.type, 'r'),
+        eq(laps.valid, true),
+        gt(laps.sector1TimeMs, 0),
+        gt(laps.sector2TimeMs, 0),
+        gt(laps.sector3TimeMs, 0),
+        gt(laps.totalTimeMs, 60000)
+      )
+    )
+);
+
+const chartData = await db
+  .with(validLapsRanked)
+  .select({
+    name: drivers.lastName,
+    numFastestLaps: sql<number>`COUNT(${validLapsRanked.driverId})`
+  })
+  .from(validLapsRanked)
+  .innerJoin(drivers, eq(validLapsRanked.driverId, drivers.id))
+  .where(eq(validLapsRanked.lapTimeRowNum, 1))
+  .groupBy(validLapsRanked.driverId);
+
+const chartOptions = {
+  title: 'Fastest Laps',
+  series: chartData.map(({ numFastestLaps }) => numFastestLaps),
+  labels: chartData.map(({ name }) => name)
+};
+---
+
+<PieChart {...chartOptions} />

@@ -1,0 +1,51 @@
+---
+import type { ApexOptions } from 'apexcharts';
+import { deepmerge } from 'deepmerge-ts';
+
+import BaseChart from './BaseChart.astro';
+
+export interface Props {
+  title: string;
+  series: number[];
+  labels: string[];
+  options?: ApexOptions;
+}
+
+const { title, series, labels, options = {} } = Astro.props;
+
+const defaultChartOptions: ApexOptions = {
+  title: {
+    text: title
+  },
+  series,
+  labels,
+  chart: {
+    type: 'pie'
+  },
+  plotOptions: {
+    pie: {
+      dataLabels: {
+        offset: -10,
+        minAngleToShowLabel: 15
+      }
+    }
+  },
+  dataLabels: {
+    enabled: true,
+    style: {
+      fontSize: '18px'
+    }
+  },
+  tooltip: {
+    fillSeriesColor: false
+  },
+  legend: {
+    position: 'bottom',
+    fontSize: '16px'
+  }
+};
+
+const chartOptions = deepmerge(defaultChartOptions, options);
+---
+
+<BaseChart options={chartOptions} />
