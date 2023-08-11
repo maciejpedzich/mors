@@ -1,0 +1,196 @@
+---
+import { asc, desc, eq, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { drivers, results, rounds, sessions, teams } from '@/db/schema';
+
+export interface Props {
+  championship: 'drivers' | 'teams';
+}
+
+const { championship } = Astro.props;
+
+const allRounds = await db.select().from(rounds);
+
+const driversStandings = await db
+  .select({
+    id: results.driverId,
+    firstName: drivers.firstName,
+    lastName: drivers.lastName,
+    team: teams.name,
+    resultsHistory: sql`
+    GROUP_CONCAT(
+      IF(
+        ${results.status} = 'fin',
+        ${results.position},
+        ${results.status}
+      )
+    )`.mapWith({
+      mapFromDriverValue(value: string) {
+        return value.split(',').map((result) => Number(result) || result);
+      }
+    }),
+    totalPoints: sql<number>`SUM(${results.points})`
+  })
+  .from(results)
+  .innerJoin(sessions, eq(results.sessionId, sessions.id))
+  .innerJoin(drivers, eq(results.driverId, drivers.id))
+  .innerJoin(teams, eq(drivers.teamId, teams.id))
+  .where(eq(sessions.type, 'r'))
+  .groupBy(results.driverId)
+  .orderBy(
+    desc(sql<number>`SUM(${results.points})`),
+    asc(
+      sql<string>`GROUP_CONCAT(${results.points} ORDER BY ${results.position} ASC)`
+    )
+  );
+
+const teamsStandings = championship === 'drivers' ? undefined : (
+  await db
+    .select({
+      name: teams.name,
+      totalPoints: sql<number>`SUM(${results.points})`
+    })
+    .from(results)
+    .innerJoin(sessions, eq(results.sessionId, sessions.id))
+    .innerJoin(drivers, eq(results.driverId, drivers.id))
+    .innerJoin(teams, eq(drivers.teamId, teams.id))
+    .where(eq(sessions.type, 'r'))
+    .groupBy(teams.id)
+    .orderBy(
+      desc(sql<number>`SUM(${results.points})`),
+      asc(
+        sql<string>`GROUP_CONCAT(${results.points} ORDER BY ${results.position} ASC)`
+      )
+    )
+);
+
+const getResultsOfDriversInTeam = (teamName: string) => driversStandings.filter(
+  (driver) => driver.team === teamName
+);
+
+const getResultCellClasses = (result: string | number) => typeof result === 'number'
+  ? result === 1
+    ? 'bg-yellow-300 text-black'
+    : result === 2
+    ? 'bg-gray-300 text-black'
+    : result === 3
+    ? 'bg-yellow-700 text-white'
+    : result <= 10
+    ? 'bg-green-300 text-black'
+    : 'bg-blue-300 text-black'
+  : result === 'dsq'
+  ? 'bg-black text-white' 
+  : 'bg-red-300 text-black';
+---
+
+<div class="relative overflow-x-auto">
+  <table
+    class="w-4/5 mx-auto border border-gray-200 text-sm text-center dark:text-gray-400 dark:border-gray-700"
+  >
+    <thead
+      class="text-base text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+    >
+      <th scope="col" class="p-1">Position</th>
+      {championship === 'drivers' && <th scope="col" class="p-1">Driver</th>}
+      <th scope="col" class="p-1">Team</th>
+      {championship === 'teams' && <th scope="col" class="p-1">No.</th>}
+      {
+        allRounds.map((round) => (
+          <th scope="col">
+            <img
+              class="mx-auto"
+              src={`https://flagcdn.com/24x18/${round.countryCode}.png`}
+              srcset={`https://flagcdn.com/48x36/${round.countryCode}.png 2x https://flagcdn.com/72x54/${round.countryCode}.png 3x`}
+              width="24"
+              height="18"
+              alt={round.name}
+              title={round.name}
+              loading="lazy"
+            />
+          </th>
+        ))
+      }
+      <th scope="col" class="p-1">Points</th>
+    </thead>
+    <tbody>
+      {
+        championship === 'drivers' && driversStandings.map((driver, index) => (
+          <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+            <td class="p-1">{index + 1}</td>
+            <td class="p-1">
+              {driver.firstName} {driver.lastName}
+            </td>
+            <td class="p-1">{driver.team}</td>
+            {driver.resultsHistory.map((result) => (
+              <td
+                class="border border-black uppercase"
+                class:list={[getResultCellClasses(result)]}
+              >
+                {result}
+              </td>
+            ))}
+            <td class="p-1">{driver.totalPoints}</td>
+          </tr>
+        ))
+      }
+      {
+        championship === 'teams' && teamsStandings!.map((team, teamIndex) => 
+          getResultsOfDriversInTeam(team.name).map((driver, driverIndex) => (
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+              { driverIndex === 0 && (
+                  <td class="p-1 text-base" rowspan="2">{teamIndex + 1}</td>
+                  <td class="p-1 text-base border-l dark:bg-gray-800 dark:border-gray-700" rowspan="2">{team.name}</td>
+                )
+              }
+              <td class="p-1 border dark:bg-gray-800 dark:border-gray-700">{driver.id}</td>
+              {driver.resultsHistory.map((result) => (
+                <td
+                  class="border border-black uppercase"
+                  class:list={[
+                    getResultCellClasses(result),
+                    driverIndex === 1 && teamIndex !== teamsStandings!.length - 1 && 'border-b-[3px]'
+                  ]}
+                >
+                  {result}
+                </td>
+              ))}
+              {driverIndex === 0 && <td class="p-1 text-base" rowspan="2">{team.totalPoints}</td>}
+            </tr>
+          ))
+        )
+      }
+    </tbody>
+  </table>
+</div>
+<h3 class="text-2xl mt-4 text-center">Legend</h3>
+<div class="mt-2 mb-12 flex justify-center gap-3">
+  <div>
+    <span class="bg-yellow-300 text-black border border-black px-4">1</span>
+    - first position
+  </div>
+  <div>
+    <span class="bg-gray-300 text-black border border-black px-4">2</span>
+    - second position
+  </div>
+  <div>
+    <span class="bg-yellow-700 text-white border border-black px-4">3</span>
+    - third position
+  </div>
+  <div>
+    <span class="bg-green-300 text-black border border-black px-4">4</span>
+    - points-scoring position
+  </div>
+  <div>
+    <span class="bg-blue-300 text-black border border-black px-3">11</span>
+    - non-points-scoring position
+  </div>
+  <div>
+    <span class="bg-red-300 text-black border border-black px-2">DNF</span>
+    - Retired/Did Not Finish
+  </div>
+  <div>
+    <span class="bg-black text-white border border-black px-2">DSQ</span>
+    - Disqualified
+  </div>
+</div>

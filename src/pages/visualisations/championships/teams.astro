@@ -1,0 +1,15 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import StandingsWithRaceResults from '@/components/ui/visualisations/StandingsWithRaceResults.astro';
+import LineRunningTotalPoints from '@/components/charts/championships/teams/LineRunningTotalPoints.astro';
+---
+
+<BaseLayout title="Teams' Championship">
+  <h1 class="text-4xl text-center font-bold mt-28 mb-8">Teams' Championship</h1>
+  <div
+    class="w-4/5 mx-auto mb-8 px-4 pt-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+  >
+    <LineRunningTotalPoints />
+  </div>
+  <StandingsWithRaceResults championship="teams" />
+</BaseLayout>
