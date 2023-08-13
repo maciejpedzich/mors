@@ -4,8 +4,9 @@ import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { drivers, sessions, results, teams, rounds } from '@/db/schema';
+import { TEAM_COLORS } from '@/constants';
+
 import BaseChart from '../../BaseChart.astro';
-import { a } from 'drizzle-orm/column.d-aa4e525d';
 
 const teamsPointsScoredEachRound = db
   .$with('teams_points_scored_each_round')
@@ -44,18 +45,6 @@ const teamsRunningTotalPoints = await db
   .innerJoin(teams, eq(teamsPointsScoredEachRound.teamId, teams.id))
   .innerJoin(rounds, eq(teamsPointsScoredEachRound.roundId, rounds.id));
 
-const allTeamColors = [
-  '#00d2be',
-  '#dc0000',
-  '#0600ef',
-  '#005aff',
-  '#006f62',
-  '#0090ff',
-  '#2b4562',
-  '#b6babd',
-  '#ff8700',
-  '#900000'
-];
 const allTeamNames = [
   ...new Set(teamsRunningTotalPoints.map(({ teamName }) => teamName))
 ];
@@ -73,11 +62,8 @@ const chartOptions: ApexOptions = {
       .filter(({ teamName }) => teamName === name)
       .map(({ runningTotalPoints }) => runningTotalPoints)
   })),
-  colors: allTeamColors,
+  colors: Object.values(TEAM_COLORS),
   chart: {
-    animations: {
-      enabled: false
-    },
     height: 550,
     type: 'line'
   },
@@ -90,13 +76,9 @@ const chartOptions: ApexOptions = {
       rotateAlways: true
     }
   },
-  yaxis: {
-    min: 0,
-    max: 700
-  },
   markers: {
     size: 4,
-    colors: allTeamColors
+    colors: Object.values(TEAM_COLORS)
   },
   legend: {
     fontSize: '16px'
