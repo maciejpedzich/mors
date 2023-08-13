@@ -45,31 +45,33 @@ const noteText = infringementCodes
       ...new Set(incidentsWithThisInfringement.map(({ penalty }) => penalty))
     ];
 
-    return penaltyCodesForThisInfringement.map((penaltyCode) => {
-      const incidentsWithThisPenalty = incidentsWithThisInfringement.filter(
-        ({ penalty }) => penalty === penaltyCode
-      );
+    return penaltyCodesForThisInfringement
+      .map((penaltyCode) => {
+        const incidentsWithThisPenalty = incidentsWithThisInfringement.filter(
+          ({ penalty }) => penalty === penaltyCode
+        );
 
-      const driversAndNumAwards = incidentsWithThisPenalty
-        .map(
-          (incident, index) =>
-            `${
-              index !== 0 && index === incidentsWithThisPenalty.length - 1
-                ? 'and '
-                : ''
-            }${incident.driverLastName}${
-              incident.numAwards === 1 ? '' : ` (x${incident.numAwards})`
-            }`
-        )
-        .join(', ');
+        const driversAndNumAwards = incidentsWithThisPenalty
+          .map(
+            (incident, index) =>
+              `${
+                index !== 0 && index === incidentsWithThisPenalty.length - 1
+                  ? 'and '
+                  : ''
+              }${incident.driverLastName}${
+                incident.numAwards === 1 ? '' : ` (x${incident.numAwards})`
+              }`
+          )
+          .join(', ');
 
-      const infringementName = INFRINGEMENTS[infringementCode].toLowerCase();
-      const penaltyName = PENALTIES[penaltyCode].toLowerCase();
+        const infringementName = INFRINGEMENTS[infringementCode].toLowerCase();
+        const penaltyName = PENALTIES[penaltyCode].toLowerCase();
 
-      return `${driversAndNumAwards} ${
-        incidentsWithThisPenalty.length === 1 ? 'was' : 'were'
-      } awarded a ${penaltyName} for ${infringementName}.`;
-    });
+        return `${driversAndNumAwards} ${
+          incidentsWithThisPenalty.length === 1 ? 'was' : 'were'
+        } awarded a ${penaltyName} for ${infringementName}.`;
+      })
+      .join(' ');
   })
   .join(' ');
 ---
