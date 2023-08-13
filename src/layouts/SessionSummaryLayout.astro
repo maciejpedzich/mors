@@ -10,13 +10,13 @@ import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import BaseChart from '@/components/charts/BaseChart.astro';
 
 export interface Props {
-  sessionType: 'p' | 'q' | 'r';
+  sessionType: 'p' | 'q';
 }
 
 const { roundId } = Astro.params;
 const { sessionType } = Astro.props;
 const title =
-  ['Practice', 'Qualifying', 'Race'].find((sessionName) =>
+  ['Practice', 'Qualifying'].find((sessionName) =>
     sessionName.startsWith(sessionType.toUpperCase())
   ) + ' Summary';
 
