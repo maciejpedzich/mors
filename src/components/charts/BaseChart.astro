@@ -22,13 +22,16 @@ const { options, page } = Astro.props;
         formatterToUse === 'summary'
           ? {
               formatter(value: number | string) {
-                return '+' + formatDurationInMs(Number(value));
+                return `+${formatDurationInMs(Number(value))}`;
               }
             }
           : {};
 
       const defaultChartOptions: ApexOptions = {
         chart: {
+          animations: {
+            enabled: false
+          },
           foreColor: document.documentElement.classList.contains('dark')
             ? '#eeeeee'
             : '#111827',
