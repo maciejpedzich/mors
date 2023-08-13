@@ -41,11 +41,11 @@ const driversStandings = await db
   .orderBy(
     desc(sql<number>`SUM(${results.points})`),
     asc(
-      sql<string>`GROUP_CONCAT(${results.points} ORDER BY ${results.position} ASC)`
+      sql<string>`GROUP_CONCAT(${results.position} ORDER BY ${results.position} ASC)`
     )
   );
 
-const teamsStandings = championship === 'drivers' ? undefined : (
+const teamsStandings = championship === 'drivers' ? null : (
   await db
     .select({
       name: teams.name,
@@ -60,7 +60,7 @@ const teamsStandings = championship === 'drivers' ? undefined : (
     .orderBy(
       desc(sql<number>`SUM(${results.points})`),
       asc(
-        sql<string>`GROUP_CONCAT(${results.points} ORDER BY ${results.position} ASC)`
+        sql<string>`GROUP_CONCAT(${results.position} ORDER BY ${results.position} ASC)`
       )
     )
 );
@@ -135,12 +135,14 @@ const getResultCellClasses = (result: string | number) => typeof result === 'num
         ))
       }
       {
-        championship === 'teams' && teamsStandings!.map((team, teamIndex) => 
+        championship === 'teams' && teamsStandings?.map((team, teamIndex) => 
           getResultsOfDriversInTeam(team.name).map((driver, driverIndex) => (
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
               { driverIndex === 0 && (
                   <td class="p-1 text-base" rowspan="2">{teamIndex + 1}</td>
-                  <td class="p-1 text-base border-l dark:bg-gray-800 dark:border-gray-700" rowspan="2">{team.name}</td>
+                  <td class="p-1 text-base border-l dark:bg-gray-800 dark:border-gray-700" rowspan="2">
+                    {team.name}
+                  </td>
                 )
               }
               <td class="p-1 border dark:bg-gray-800 dark:border-gray-700">{driver.id}</td>
@@ -149,7 +151,7 @@ const getResultCellClasses = (result: string | number) => typeof result === 'num
                   class="border border-black uppercase"
                   class:list={[
                     getResultCellClasses(result),
-                    driverIndex === 1 && teamIndex !== teamsStandings!.length - 1 && 'border-b-[3px]'
+                    driverIndex === 1 && teamIndex !== teamsStandings?.length - 1 && 'border-b-[3px]'
                   ]}
                 >
                   {result}
