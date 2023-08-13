@@ -43,28 +43,6 @@ const { roundId } = Astro.params;
           Results
         </a>
       </li>
-      {
-        sessionName === 'Race' && (
-          <>
-            <li>
-              <a
-                href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/race-pace`}
-                class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Race Pace
-              </a>
-            </li>
-            <li>
-              <a
-                href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/tyre-wear-and-strategy`}
-                class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Tyre Wear & Strategy
-              </a>
-            </li>
-          </>
-        )
-      }
       <li>
         <button
           id={`${sessionName}FastestLapsDropdownButton`}
