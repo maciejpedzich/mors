@@ -7,6 +7,7 @@ import { getName } from 'i18n-nationality';
 import { formatDurationInMs } from '@/utils/formatDurationInMs';
 
 import DashboardLayout from './DashboardLayout.astro';
+import PenaltiesNote from '@/components/ui/visualisations/PenaltiesNote.astro';
 
 export interface Props {
   sessionType: 'p' | 'q';
@@ -164,4 +165,5 @@ const sessionResults = await db
       </tbody>
     </table>
   </div>
+  <PenaltiesNote sessionType={sessionType} />
 </DashboardLayout>

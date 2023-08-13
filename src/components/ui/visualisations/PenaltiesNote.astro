@@ -1,0 +1,84 @@
+---
+import { and, eq, inArray, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { incidents, drivers, sessions } from '@/db/schema';
+import { INFRINGEMENTS, PENALTIES } from '@/constants';
+
+export interface Props {
+  sessionType: 'p' | 'q' | 'r';
+}
+
+const { roundId } = Astro.params;
+const { sessionType } = Astro.props;
+
+const incidentsInThisSession = await db
+  .select({
+    infringement: incidents.infringement,
+    penalty: incidents.penalty,
+    driverLastName: drivers.lastName,
+    numAwards: sql<number>`COUNT(*)`.mapWith(Number)
+  })
+  .from(incidents)
+  .innerJoin(drivers, eq(incidents.driverId, drivers.id))
+  .innerJoin(sessions, eq(incidents.sessionId, sessions.id))
+  .where(
+    and(
+      eq(sessions.roundId, Number(roundId)),
+      eq(sessions.type, sessionType),
+      inArray(incidents.penalty, [0, 1, 2, 4, 6])
+    )
+  )
+  .groupBy(incidents.driverId, incidents.infringement, incidents.penalty);
+
+const infringementCodes = [
+  ...new Set(incidentsInThisSession.map(({ infringement }) => infringement))
+];
+
+const noteText = infringementCodes
+  .map((infringementCode) => {
+    const incidentsWithThisInfringement = incidentsInThisSession.filter(
+      ({ infringement }) => infringement === infringementCode
+    );
+
+    const penaltyCodesForThisInfringement = [
+      ...new Set(incidentsWithThisInfringement.map(({ penalty }) => penalty))
+    ];
+
+    return penaltyCodesForThisInfringement.map((penaltyCode) => {
+      const incidentsWithThisPenalty = incidentsWithThisInfringement.filter(
+        ({ penalty }) => penalty === penaltyCode
+      );
+
+      const driversAndNumAwards = incidentsWithThisPenalty
+        .map(
+          (incident, index) =>
+            `${
+              index !== 0 && index === incidentsWithThisPenalty.length - 1
+                ? 'and '
+                : ''
+            }${incident.driverLastName}${
+              incident.numAwards === 1 ? '' : ` (x${incident.numAwards})`
+            }`
+        )
+        .join(', ');
+
+      const infringementName = INFRINGEMENTS[infringementCode].toLowerCase();
+      const penaltyName = PENALTIES[penaltyCode].toLowerCase();
+
+      return `${driversAndNumAwards} ${
+        incidentsWithThisPenalty.length === 1 ? 'was' : 'were'
+      } awarded a ${penaltyName} for ${infringementName}.`;
+    });
+  })
+  .join(' ');
+---
+
+<div class="lg:w-3/4 md:w-5/6 w-11/12 md:mx-auto">
+  <p
+    class="text-lg text-center"
+    class:list={[incidentsInThisSession.length > 0 && 'mt-4']}
+  >
+    {incidentsInThisSession.length > 0 ? `Note: ${noteText}` : ''}
+  </p>
+</div>
