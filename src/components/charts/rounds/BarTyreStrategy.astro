@@ -1,0 +1,133 @@
+---
+import type { ApexOptions } from 'apexcharts';
+import { and, asc, eq, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { drivers, laps, results, sessions } from '@/db/schema';
+import { TYRE_COMPOUND_COLORS } from '@/constants';
+import BaseChart from '../BaseChart.astro';
+
+const { roundId } = Astro.params;
+
+const tyreStintHistory = db.$with('tyre_stint_history').as(
+  db
+    .select({
+      driverId: laps.driverId,
+      tyreCompound: laps.tyreCompound,
+      firstLapUsed: sql<number>`MIN(${laps.lapNumber})`
+        .mapWith(Number)
+        .as('first_lap_used'),
+      lastLapUsed: sql<number>`MAX(${laps.lapNumber})`
+        .mapWith(Number)
+        .as('last_lap_used')
+    })
+    .from(laps)
+    .innerJoin(sessions, eq(laps.sessionId, sessions.id))
+    .where(and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, 'r')))
+    .groupBy(laps.driverId, laps.tyreCompound)
+);
+
+const chartData = await db
+  .with(tyreStintHistory)
+  .select({
+    driverLastName: drivers.lastName,
+    driverId: tyreStintHistory.driverId,
+    tyreCompound: tyreStintHistory.tyreCompound,
+    firstLapUsed: tyreStintHistory.firstLapUsed,
+    lastLapUsed: sql<number>`
+      IFNULL(
+        LEAD(${tyreStintHistory.firstLapUsed}, 1) OVER (
+          PARTITION BY
+            ${tyreStintHistory.driverId}
+          ORDER BY
+            ${tyreStintHistory.firstLapUsed}
+        ),
+        ${tyreStintHistory.lastLapUsed}
+      )  
+    `.mapWith(Number)
+  })
+  .from(tyreStintHistory)
+  .innerJoin(results, eq(tyreStintHistory.driverId, results.driverId))
+  .innerJoin(sessions, eq(results.sessionId, sessions.id))
+  .innerJoin(drivers, eq(tyreStintHistory.driverId, drivers.id))
+  .where(and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, 'r')))
+  .orderBy(asc(results.position), asc(tyreStintHistory.firstLapUsed));
+
+const tyreCompoundCodes = Object.keys(TYRE_COMPOUND_COLORS);
+const fullTyreCompoundNames = ['Soft', 'Medium', 'Hard', 'Intermediate', 'Wet'];
+const driverIds = [...new Set(chartData.map(({ driverId }) => driverId))];
+const totalLapsRaced = Math.max(
+  ...chartData.map(({ lastLapUsed }) => lastLapUsed)
+);
+
+const chartOptions: ApexOptions = {
+  series: tyreCompoundCodes.map((currentTyreCompound, index) => ({
+    name: fullTyreCompoundNames[index],
+    data: driverIds.flatMap((currentDriverId) => {
+      const [{ driverLastName }] = chartData.filter(
+        ({ driverId }) => driverId === currentDriverId
+      );
+
+      const entriesWithCurrentTyreAndDriver = chartData.filter(
+        ({ tyreCompound, driverId }) =>
+          tyreCompound === currentTyreCompound && driverId === currentDriverId
+      );
+
+      if (entriesWithCurrentTyreAndDriver.length > 0) {
+        return entriesWithCurrentTyreAndDriver.map(
+          ({ firstLapUsed, lastLapUsed }) => ({
+            x: driverLastName,
+            y: [firstLapUsed, lastLapUsed]
+          })
+        );
+      } else {
+        return [{ x: driverLastName, y: [0, 0] }];
+      }
+    })
+  })),
+  colors: Object.values(TYRE_COMPOUND_COLORS),
+  title: {
+    text: 'Tyre Stint History'
+  },
+  chart: {
+    type: 'rangeBar'
+  },
+  plotOptions: {
+    bar: {
+      horizontal: true,
+      barHeight: '75%',
+      rangeBarGroupRows: true
+    }
+  },
+  stroke: {
+    width: 2,
+    colors: ['#000']
+  },
+  legend: {
+    fontSize: '18px'
+  },
+  xaxis: {
+    min: 1,
+    max: totalLapsRaced,
+    tickAmount: totalLapsRaced - 1,
+    labels: {
+      style: {
+        fontSize: '16px'
+      }
+    },
+    axisTicks: {
+      show: false
+    }
+  },
+  yaxis: {
+    labels: {
+      offsetY: 3,
+      style: {
+        fontSize: '16px'
+      }
+    }
+  }
+};
+---
+
+<BaseChart options={chartOptions} />

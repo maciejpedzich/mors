@@ -1,4 +1,4 @@
-export const TEAM_COLORS: { [index: number]: string } = {
+export const TEAM_COLORS: Record<number, string> = {
   1: '#00d2be', // Mercedes
   2: '#dc0000', // Ferrari
   3: '#0600ef', // Red Bull
@@ -11,12 +11,20 @@ export const TEAM_COLORS: { [index: number]: string } = {
   10: '#900000' // Alfa Romeo
 };
 
+export const TYRE_COMPOUND_COLORS: Record<string, string> = {
+  s: '#c53537',
+  m: '#e0cf48',
+  h: '#c2c4c8',
+  i: '#4bc048',
+  w: '#00adee'
+};
+
 /*
   Shamelessly stolen from:
   https://github.com/racehub-io/f1-telemetry-client/blob/57ceb8b32ef7b6a9af8d834193f7c2a7fee26413/src/constants
 */
 
-export const INFRINGEMENTS: { [index: number]: string } = {
+export const INFRINGEMENTS: Record<number, string> = {
   0: 'Blocking by driving slowly',
   1: 'Blocking by driving the wrong way',
   2: 'Reversing off the start line',
@@ -74,7 +82,7 @@ export const INFRINGEMENTS: { [index: number]: string } = {
   54: 'Attribute assigned'
 };
 
-export const PENALTIES: { [index: number]: string } = {
+export const PENALTIES: Record<number, string> = {
   0: 'Drive through penalty',
   1: 'Stop Go penalty',
   2: 'Grid penalty',

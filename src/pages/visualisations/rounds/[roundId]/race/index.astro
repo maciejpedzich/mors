@@ -1,5 +1,10 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import BarTyreStrategy from '@/components/charts/rounds/BarTyreStrategy.astro';
 ---
 
-<DashboardLayout title="Race Summary" />
+<DashboardLayout title="Race Summary">
+  <div class="relative w-3/4 mx-auto">
+    <BarTyreStrategy />
+  </div>
+</DashboardLayout>
