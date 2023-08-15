@@ -128,7 +128,7 @@ const chartOptions: ApexOptions = {
             <p class="text-xl text-gray-700 dark:text-gray-400">
               P{index + 1} - {driver.firstName} {driver.lastName}
             </p>
-            {driver.gapToWinnerMs == 0 ? (
+            {driver.gapToWinnerMs === 0 ? (
               <span class="text-xl text-purple-700 dark:text-purple-400">
                 Winner
               </span>

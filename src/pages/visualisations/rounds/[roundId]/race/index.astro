@@ -1,10 +1,115 @@
 ---
+import { and, asc, eq, lte, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { laps, sessions, results, drivers } from '@/db/schema';
+import { formatDurationInMs } from '@/utils/formatDurationInMs';
+
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import BarTyreStrategy from '@/components/charts/rounds/BarTyreStrategy.astro';
+
+const { roundId } = Astro.params;
+
+const lapsMetadata = db.$with('laps_metadata').as(
+  db
+    .select({
+      driverId: laps.driverId,
+      raceTimeNoPensMs: sql<number>`SUM(${laps.totalTimeMs})`.as(
+        'race_time_no_pens_ms'
+      )
+    })
+    .from(laps)
+    .innerJoin(sessions, eq(laps.sessionId, sessions.id))
+    .where(and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, 'r')))
+    .groupBy(laps.driverId)
+);
+
+const topThreeResultsWithoutGaps = db
+  .$with('top_three_results_without_gaps')
+  .as(
+    db
+      .select({
+        position: results.position,
+        driverId: lapsMetadata.driverId,
+        totalRaceTimeMs: sql<number>`
+          ${lapsMetadata.raceTimeNoPensMs} + (${results.penaltiesSeconds} * 1000)
+        `
+          .mapWith(Number)
+          .as('total_race_time_ms')
+      })
+      .from(results)
+      .innerJoin(sessions, eq(results.sessionId, sessions.id))
+      .innerJoin(lapsMetadata, eq(results.driverId, lapsMetadata.driverId))
+      .where(
+        and(
+          eq(sessions.roundId, Number(roundId)),
+          eq(sessions.type, 'r'),
+          lte(results.position, 3)
+        )
+      )
+      .orderBy(asc(results.position))
+  );
+
+const topThreeDrivers = await db
+  .with(lapsMetadata, topThreeResultsWithoutGaps)
+  .select({
+    posittion: topThreeResultsWithoutGaps.position,
+    firstName: drivers.firstName,
+    lastName: drivers.lastName,
+    totalRaceTimeMs: topThreeResultsWithoutGaps.totalRaceTimeMs,
+    gapToWinnerMs: sql<number>`
+        ${topThreeResultsWithoutGaps.totalRaceTimeMs}
+        - MIN(${topThreeResultsWithoutGaps.totalRaceTimeMs}) OVER (
+            ORDER BY
+            ${topThreeResultsWithoutGaps.position} ASC
+          )
+      `.mapWith(Number)
+  })
+  .from(topThreeResultsWithoutGaps)
+  .innerJoin(drivers, eq(topThreeResultsWithoutGaps.driverId, drivers.id));
 ---
 
 <DashboardLayout title="Race Summary">
   <div class="relative w-3/4 mx-auto">
-    <BarTyreStrategy />
+    <div
+      class="grid md:grid-cols-3 grid-cols-1 md:grid-rows-1 grid-rows-3 md:gap-8 gap-4"
+    >
+      {
+        topThreeDrivers.map((driver, index) => (
+          <div
+            class:list={[
+              index === 0
+                ? 'md:order-2 order-1'
+                : index === 1
+                ? 'md:order-1 order-2'
+                : 'order-3'
+            ]}
+            class="flex flex-col justify-center gap-1 p-3 text-center bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+          >
+            <h5 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+              {formatDurationInMs(driver.totalRaceTimeMs)}
+            </h5>
+            <p class="text-xl text-gray-700 dark:text-gray-400">
+              P{index + 1} - {driver.firstName} {driver.lastName}
+            </p>
+            {driver.gapToWinnerMs === 0 ? (
+              <span class="text-xl text-purple-700 dark:text-purple-400">
+                Winner
+              </span>
+            ) : (
+              <p class="text-xl text-gray-700 dark:text-gray-400">
+                <span class="text-red-700 dark:text-red-400">
+                  {'+' + formatDurationInMs(driver.gapToWinnerMs)}
+                </span>
+                to winner
+              </p>
+            )}
+          </div>
+        ))
+      }
+    </div>
+    <div class="mt-12 md:w-5/6 w-11/12 mx-auto">
+      <BarTyreStrategy />
+    </div>
   </div>
 </DashboardLayout>
