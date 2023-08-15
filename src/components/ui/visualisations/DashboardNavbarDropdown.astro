@@ -44,78 +44,20 @@ const { roundId } = Astro.params;
         </a>
       </li>
       <li>
-        <button
-          id={`${sessionName}FastestLapsDropdownButton`}
-          data-dropdown-toggle={`${sessionName}FastestLapsDropdownMenu`}
-          data-dropdown-placement="right"
-          class="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+        <a
+          href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/fastest-laps`}
+          class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
         >
           Fastest Laps
-          <DropdownRightIcon />
-        </button>
-        <div
-          id={`${sessionName}FastestLapsDropdownMenu`}
-          class="z-10 hidden font-normal drop-shadow-xl border border-gray-500 bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600"
-        >
-          <ul
-            class="py-2 text-sm text-gray-700 dark:text-gray-400"
-            aria-labelledby={`${sessionName}FastestLapsDropdownButton`}
-          >
-            <li>
-              <a
-                href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/fastest-laps`}
-                class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Session-wide
-              </a>
-            </li>
-            <li>
-              <a
-                href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/fastest-laps/drivers`}
-                class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Individual
-              </a>
-            </li>
-          </ul>
-        </div>
+        </a>
       </li>
       <li>
-        <button
-          id={`${sessionName}IncidentsDropdownButton`}
-          data-dropdown-toggle={`${sessionName}IncidentsDropdownMenu`}
-          data-dropdown-placement="right"
-          class="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+        <a
+          href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/incidents`}
+          class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
         >
           Incidents
-          <DropdownRightIcon />
-        </button>
-        <div
-          id={`${sessionName}IncidentsDropdownMenu`}
-          class="z-10 hidden font-normal drop-shadow-xl border border-gray-500 bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600"
-        >
-          <ul
-            class="py-2 text-sm text-gray-700 dark:text-gray-400"
-            aria-labelledby="DropdownButton"
-          >
-            <li>
-              <a
-                href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/incidents`}
-                class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Session-wide
-              </a>
-            </li>
-            <li>
-              <a
-                href={`/visualisations/rounds/${roundId}/${sessionName.toLowerCase()}/incidents/drivers`}
-                class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Individual
-              </a>
-            </li>
-          </ul>
-        </div>
+        </a>
       </li>
     </ul>
   </div>
