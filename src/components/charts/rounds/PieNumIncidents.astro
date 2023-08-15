@@ -1,0 +1,48 @@
+---
+import { and, desc, eq, sql } from 'drizzle-orm';
+import type { ApexOptions } from 'apexcharts';
+
+import { db } from '@/db';
+import { incidents, drivers, sessions } from '@/db/schema';
+import { INFRINGEMENTS } from '@/constants';
+
+import PieChart from '../PieChart.astro';
+
+export interface Props {
+  sessionType: 'p' | 'q' | 'r';
+  groupBy: 'Infringement' | 'Driver';
+}
+
+const { roundId } = Astro.params;
+const { sessionType, groupBy } = Astro.props;
+
+const chartData = await db
+  .select({
+    lastName: drivers.lastName,
+    infringement: incidents.infringement,
+    numIssues: sql<number>`COUNT(*)`.mapWith(Number)
+  })
+  .from(incidents)
+  .innerJoin(sessions, eq(incidents.sessionId, sessions.id))
+  .innerJoin(drivers, eq(incidents.driverId, drivers.id))
+  .where(
+    and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, sessionType))
+  )
+  .groupBy(
+    groupBy === 'Infringement' ? incidents.infringement : incidents.driverId
+  )
+  .orderBy(desc(sql`COUNT(*)`));
+
+const title = `Incidents Groupped By ${groupBy}`;
+const series = chartData.map(({ numIssues }) => numIssues);
+const labels = chartData.map(({ lastName, infringement }) =>
+  groupBy === 'Infringement' ? INFRINGEMENTS[infringement] : lastName
+);
+const options: ApexOptions = {
+  noData: {
+    text: 'No data available'
+  }
+};
+---
+
+<PieChart title={title} series={series} labels={labels} />

@@ -1,0 +1,94 @@
+---
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { incidents, drivers, sessions } from '@/db/schema';
+import { INFRINGEMENTS, PENALTIES } from '@/constants';
+
+import PieNumIncidents from '@/components/charts/rounds/PieNumIncidents.astro';
+import DashboardLayout from './DashboardLayout.astro';
+
+export interface Props {
+  sessionType: 'p' | 'q' | 'r';
+}
+
+const { roundId } = Astro.params;
+const { sessionType } = Astro.props;
+
+const title =
+  ['Practice', 'Qualifying', 'Race'].find((sessionName) =>
+    sessionName.startsWith(sessionType.toUpperCase())
+  ) + ' Incidents';
+
+const incidentsHistory = await db
+  .select({
+    driverId: incidents.driverId,
+    firstName: drivers.firstName,
+    lastName: drivers.lastName,
+    infringement: incidents.infringement,
+    penalty: incidents.penalty
+  })
+  .from(incidents)
+  .innerJoin(sessions, eq(incidents.sessionId, sessions.id))
+  .innerJoin(drivers, eq(incidents.driverId, drivers.id))
+  .where(
+    and(eq(sessions.roundId, Number(roundId)), eq(sessions.type, sessionType))
+  )
+  .orderBy(asc(incidents.dateNoted));
+---
+
+<DashboardLayout title={title}>
+  <div
+    class="lg:w-3/5 md:w-5/6 w-11/12 md:mx-auto mb-8 grid md:grid-rows-1 grid-rows-2 md:grid-cols-2 grid-cols-1 gap-6"
+  >
+    <div
+      class="p-4 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+    >
+      <PieNumIncidents sessionType={sessionType} groupBy="Infringement" />
+    </div>
+    <div
+      class="p-4 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+    >
+      <PieNumIncidents sessionType={sessionType} groupBy="Driver" />
+    </div>
+  </div>
+  {
+    incidentsHistory.length > 0 && (
+      <div class="lg:px-0 px-4 relative overflow-x-auto">
+        <table class="lg:w-3/5 md:w-5/6 w-11/12 md:mx-auto border dark:border-gray-700 text-left dark:text-gray-400">
+          <thead class="text-center text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <th scope="col" class="px-6 py-3">
+              Driver
+            </th>
+            <th scope="col" class="px-6 py-3">
+              Infringement
+            </th>
+            <th scope="col" class="px-6 py-3">
+              Penalty
+            </th>
+          </thead>
+          <tbody>
+            {incidentsHistory.map((incident, index) => (
+              <tr
+                class:list={[
+                  index % 2 === 0
+                    ? 'bg-white dark:bg-gray-900'
+                    : 'bg-gray-50 dark:bg-gray-800'
+                ]}
+                class="text-center border-b dark:border-gray-700"
+              >
+                <td class="px-6 py-4">
+                  {incident.firstName} {incident.lastName}
+                </td>
+                <td class="px-6 py-4">
+                  {INFRINGEMENTS[incident.infringement]}
+                </td>
+                <td class="px-6 py-4">{PENALTIES[incident.penalty]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</DashboardLayout>
