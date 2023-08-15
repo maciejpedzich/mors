@@ -1,0 +1,177 @@
+---
+import { and, asc, eq, gt, sql } from 'drizzle-orm';
+import type { ApexOptions } from 'apexcharts';
+
+import { db } from '@/db';
+import { laps, drivers, sessions } from '@/db/schema';
+
+import DashboardLayout from './DashboardLayout.astro';
+import BaseChart from '@/components/charts/BaseChart.astro';
+
+export interface Props {
+  sessionType: 'p' | 'q' | 'r';
+}
+
+const { roundId } = Astro.params;
+const { sessionType } = Astro.props;
+
+const title =
+  ['Practice', 'Qualifying', 'Race'].find((sessionName) =>
+    sessionName.startsWith(sessionType.toUpperCase())
+  ) + ' Personal Bests';
+
+const pbSectorAndLapTimes = db.$with('pb_sector_and_lap_times').as(
+  db
+    .select({
+      lastName: drivers.lastName,
+      pbS1TimeMs: sql<number>`MIN(${laps.sector1TimeMs})`
+        .mapWith(Number)
+        .as('pb_s1_time_ms'),
+      pbS2TimeMs: sql<number>`MIN(${laps.sector2TimeMs})`
+        .mapWith(Number)
+        .as('pb_s2_time_ms'),
+      pbS3TimeMs: sql<number>`MIN(${laps.sector3TimeMs})`
+        .mapWith(Number)
+        .as('pb_s3_time_ms'),
+      pbTotalTimeMs: sql<number>`MIN(${laps.totalTimeMs})`
+        .mapWith(Number)
+        .as('pb_total_time_ms')
+    })
+    .from(laps)
+    .innerJoin(drivers, eq(laps.driverId, drivers.id))
+    .innerJoin(sessions, eq(laps.sessionId, sessions.id))
+    .where(
+      and(
+        eq(sessions.roundId, Number(roundId)),
+        eq(sessions.type, sessionType),
+        eq(laps.valid, true),
+        gt(laps.sector1TimeMs, 0),
+        gt(laps.sector2TimeMs, 0),
+        gt(laps.sector3TimeMs, 0),
+        gt(laps.totalTimeMs, 60000)
+      )
+    )
+    .groupBy(laps.driverId)
+);
+
+const pbTimesWithIdealLaps = db.$with('pb_times_with_ideal_lap').as(
+  db
+    .select({
+      lastName: pbSectorAndLapTimes.lastName,
+      pbS1TimeMs: pbSectorAndLapTimes.pbS1TimeMs,
+      pbS2TimeMs: pbSectorAndLapTimes.pbS2TimeMs,
+      pbS3TimeMs: pbSectorAndLapTimes.pbS3TimeMs,
+      pbTotalTimeMs: pbSectorAndLapTimes.pbTotalTimeMs,
+      idealLapTimeMs: sql<number>`
+            ${pbSectorAndLapTimes.pbS1TimeMs}
+            + ${pbSectorAndLapTimes.pbS2TimeMs}
+            + ${pbSectorAndLapTimes.pbS3TimeMs}
+          `
+        .mapWith(Number)
+        .as('ideal_lap_time_ms')
+    })
+    .from(pbSectorAndLapTimes)
+);
+
+const chartData = await db
+  .with(pbSectorAndLapTimes, pbTimesWithIdealLaps)
+  .select({
+    lastName: pbTimesWithIdealLaps.lastName,
+    gapToBestS1TimeMs: sql<number>`
+      ${pbTimesWithIdealLaps.pbS1TimeMs} - (
+        MIN(${pbTimesWithIdealLaps.pbS1TimeMs}) OVER (
+          ORDER BY ${pbTimesWithIdealLaps.pbS1TimeMs} ASC
+        )
+      )  
+    `.mapWith(Number),
+    gapToBestS2TimeMs: sql<number>`
+      ${pbTimesWithIdealLaps.pbS2TimeMs} - (
+        MIN(${pbTimesWithIdealLaps.pbS2TimeMs}) OVER (
+          ORDER BY ${pbTimesWithIdealLaps.pbS2TimeMs} ASC
+        )
+      )  
+    `.mapWith(Number),
+    gapToBestS3TimeMs: sql<number>`
+      ${pbTimesWithIdealLaps.pbS3TimeMs} - (
+        MIN(${pbTimesWithIdealLaps.pbS3TimeMs}) OVER (
+          ORDER BY ${pbTimesWithIdealLaps.pbS3TimeMs} ASC
+        )
+      )
+    `.mapWith(Number),
+    pbGapToBestIdealTimeMS: sql<number>`
+      ${pbTimesWithIdealLaps.pbTotalTimeMs} - (
+        MIN(${pbTimesWithIdealLaps.idealLapTimeMs}) OVER (
+          ORDER BY ${pbTimesWithIdealLaps.idealLapTimeMs} ASC
+        )
+      )
+    `.mapWith(Number)
+  })
+  .from(pbTimesWithIdealLaps)
+  .orderBy(asc(pbTimesWithIdealLaps.pbTotalTimeMs));
+
+const chartOptions: ApexOptions = {
+  title: {
+    text: 'Gap To Ideal Sector And Lap Times'
+  },
+  series: [
+    {
+      name: 'Gap To Best S1',
+      type: 'bar',
+      data: chartData.map(({ lastName, gapToBestS1TimeMs }) => ({
+        x: lastName,
+        y: gapToBestS1TimeMs
+      }))
+    },
+    {
+      name: 'Gap To Best S2',
+      type: 'bar',
+      data: chartData.map(({ lastName, gapToBestS2TimeMs }) => ({
+        x: lastName,
+        y: gapToBestS2TimeMs
+      }))
+    },
+    {
+      name: 'Gap To Best S3',
+      type: 'bar',
+      data: chartData.map(
+        ({ lastName, gapToBestS3TimeMs, pbGapToBestIdealTimeMS }) => ({
+          x: lastName,
+          y: gapToBestS3TimeMs,
+          goals: [
+            {
+              name: "PB Time's Gap To Ideal Time",
+              value: pbGapToBestIdealTimeMS,
+              strokeWidth: 5,
+              strokeHeight: 10,
+              strokeColor: '#b90076'
+            }
+          ]
+        })
+      )
+    }
+  ],
+  chart: {
+    type: 'bar',
+    stacked: true
+  },
+  plotOptions: {
+    bar: {
+      horizontal: true
+    }
+  },
+  yaxis: {
+    labels: {
+      offsetY: 4,
+      style: {
+        fontSize: '16px'
+      }
+    }
+  }
+};
+---
+
+<DashboardLayout title={title}>
+  <div class="w-3/5 mx-auto">
+    <BaseChart options={chartOptions} page="personal-bests" />
+  </div>
+</DashboardLayout>

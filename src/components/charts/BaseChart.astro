@@ -3,7 +3,7 @@ import type { ApexOptions } from 'apexcharts';
 
 export interface Props {
   options: ApexOptions;
-  page?: 'summary';
+  page?: 'summary' | 'personal-bests';
 }
 
 const { options, page } = Astro.props;
@@ -19,10 +19,10 @@ const { options, page } = Astro.props;
       const formatterToUse = this.dataset.formatter;
 
       const formatterObj =
-        formatterToUse === 'summary'
+        formatterToUse === 'summary' || formatterToUse === 'personal-bests'
           ? {
               formatter(value: number | string) {
-                return `+${formatDurationInMs(Number(value))}`;
+                return formatDurationInMs(Number(value));
               }
             }
           : {};
